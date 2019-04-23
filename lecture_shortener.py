@@ -23,6 +23,16 @@ def validate_output_file(p, filepath) -> str:
         return filepath
 
 
+def validate_float_positive(p, n) -> float:
+    try:
+        n = float(n)
+        if n <= 0:
+            raise argparse.ArgumentTypeError(f"{n} must be greater than 0")
+        return n
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{n} could not be converted to float")
+
+
 def arguments():
     parser = argparse.ArgumentParser(description='Speed up lectures')
     parser.add_argument(
@@ -42,22 +52,24 @@ def arguments():
         type=lambda x: validate_output_file(parser, x)
     )
     parser.add_argument(
-        '--speed-talking',
-        type=float,
+        '--speed-sound',
+        metavar='SPEED_SOUND',
+        type=lambda x: validate_float_positive(parser, x),
         default=1.6,
         help='general video speed',
     )
     parser.add_argument(
         '--speed-silence',
-        type=float,
+        metavar='SPEED_SILENCE',
+        type=lambda x: validate_float_positive(parser, x),
         default=5.0,
         help='video speed during silence',
     )
     parser.add_argument(
         '--silence-threshold',
-        type=float,
+        type=lambda x: validate_float_positive(parser, x),
         default=0.3,
-        help='section will be labeled as silent if silence is longer than `silence_threshold`',
+        help='section will be labeled as `silent` if silence is longer than `silence_threshold` in seconds',
     )
     return parser.parse_args()
 
