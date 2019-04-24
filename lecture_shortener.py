@@ -1,108 +1,16 @@
-import argparse
 import os.path
 import subprocess
 import time
 
 import moviepy.video.fx.all
+import numpy as np
 from moviepy.editor import *
-from pydub import AudioSegment, silence
+from scipy.io import wavfile
+
+import util
 
 TEMP_DIR = '.tmp'
 AUDIO_FILE_NAME = 'audio.wav'
-
-
-# check if file exists
-def validate_input_file(p, filepath) -> str:
-    if not os.path.exists(filepath):
-        p.error(f'The file {filepath} does not exist.')
-    else:
-        return filepath
-
-
-# check if output file already exists
-# if not check if dir does already exist
-def validate_output_file(p, filepath) -> str:
-    abspath = os.path.abspath(filepath)
-    dirname = os.path.dirname(abspath)
-    if os.path.isfile(abspath):
-        p.error(f'The file {filepath} does already exist.')
-    elif not os.path.exists(dirname):
-        p.error(f'The directory {dirname} does not exist.')
-    else:
-        return filepath
-
-
-def validate_float_positive(n) -> float:
-    try:
-        n = float(n)
-        if n <= 0:
-            raise argparse.ArgumentTypeError(f'{n} must be greater than 0')
-        return n
-    except ValueError:
-        raise argparse.ArgumentTypeError(f'{n} could not be converted to float')
-
-
-def validate_int_positive(n) -> int:
-    try:
-        n = int(n)
-        if n <= 0:
-            raise argparse.ArgumentTypeError(f'{n} must be greater than 0')
-        return n
-    except ValueError:
-        raise argparse.ArgumentTypeError(f'{n} could not be converted to int')
-
-
-def arguments():
-    parser = argparse.ArgumentParser(description='Speed up lectures')
-    parser.add_argument(
-        '-i',
-        dest='input_filename',
-        required=True,
-        help='input file path',
-        metavar='INFILE',
-        type=lambda x: validate_input_file(parser, x)
-    )
-    parser.add_argument(
-        '-o',
-        dest='output_filename',
-        required=True,
-        help='output file path',
-        metavar='OUTFILE',
-        type=lambda x: validate_output_file(parser, x)
-    )
-    parser.add_argument(
-        '--speed-sound',
-        metavar='SPEED_SOUND',
-        type=lambda x: validate_float_positive(x),
-        default=1.6,
-        help='general video speed',
-    )
-    parser.add_argument(
-        '--speed-silence',
-        metavar='SPEED_SILENCE',
-        type=lambda x: validate_float_positive(x),
-        default=5.0,
-        help='video speed during silence',
-    )
-    parser.add_argument(
-        '--min-silence-len',
-        type=lambda x: validate_int_positive(x),
-        default=1500,
-        help='section will be labeled as `silent` if silence is longer than `min-silence-len` in ms',
-    )
-    parser.add_argument(
-        '--silence-threshold',
-        type=int,
-        default=-16,
-        help='frame is `silent` if volume is smaller than `silence-threshold',
-    )
-    parser.add_argument(
-        '--seek-step',
-        type=lambda x: validate_int_positive(x),
-        default=1,
-        help='check every nth frame to detect silence',
-    )
-    return parser.parse_args()
 
 
 def extract_audio_from_video(video_file):
@@ -113,18 +21,71 @@ def extract_audio_from_video(video_file):
     subprocess.call(command, shell=True)
 
 
-def detect_silence_ranges(audio, min_silence_len, seek_step, silence_threshold) -> list:
+def get_energy(samples):
+    return np.sum(np.power(samples, 2)) / float(len(samples))
+
+
+def windows(samples, window_size, step_size):
+    for start in range(0, len(samples), step_size):
+        end = start + window_size
+        if end >= len(samples):
+            break
+        yield samples[start:end]
+
+
+def detect_silence_ranges(audio, sample_rate, min_silence_len, step_duration, silence_threshold):
     print('[i] detecting silence ranges ...')
     start = time.time()
-    ranges = silence.detect_silence(
-        audio,
-        min_silence_len=min_silence_len,
-        silence_thresh=-silence_threshold,
-        seek_step=seek_step
+
+    print('  - converting audio to mono')
+    mono_audio = np.sum(audio, axis=1) / 2
+
+    print('  - finding maximum amplitude')
+    max_amplitude = np.max(mono_audio)
+    max_energy = get_energy([max_amplitude])
+
+    window_size = int(min_silence_len * sample_rate / 1000)
+    step_size = int(step_duration * sample_rate / 1000)
+
+    sample_windows = windows(
+        samples=mono_audio,
+        window_size=window_size,
+        step_size=step_size
     )
+
+    window_energy = (get_energy(w) / max_energy for w in sample_windows)
+
+    ranges_silent = []
+    ranges_sound = []
+
+    last_frame_silent = False
+    last_transition = -1
+    length = 0
+    for i, energy in enumerate(window_energy):
+        length += 1
+        current_frame_silent = energy <= silence_threshold
+        if current_frame_silent != last_frame_silent:  # transition
+            if last_transition == -1:
+                last_transition = 0
+                continue
+            if last_frame_silent:
+                last_frame_silent = False
+                ranges_sound.append((last_transition, i - 1))
+                last_transition = i
+            else:
+                last_frame_silent = True
+                ranges_silent.append((last_transition, i - 1))
+                last_transition = i
+
+    if last_transition < length:
+        if last_frame_silent:
+            ranges_sound.append((last_transition, length - 1))
+        else:
+            ranges_silent.append((last_transition, length - 1))
+
     duration = round(time.time() - start, 1)
     print(f'took {duration} seconds')
-    return ranges
+    return ranges_silent, ranges_sound
 
 
 def apply_speed_to_range(clip, silence_range, speed):
@@ -133,24 +94,28 @@ def apply_speed_to_range(clip, silence_range, speed):
 
 
 def main():
-    args = arguments()
+    args = util.arguments()
 
     extract_audio_from_video(args.input_filename)
 
-    audio_segment = AudioSegment.from_wav(f'{TEMP_DIR}/{AUDIO_FILE_NAME}')
-    # os.remove(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
+    complete_clip = VideoFileClip(args.input_filename)
+    sample_rate, audio_data = wavfile.read(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
+    # frame_rate = complete_clip.fps
 
-    silence_ranges = detect_silence_ranges(
-        audio=audio_segment,
+    os.remove(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
+
+    step_duration = args.step_duration if args.step_duration else args.min_silence_len / 10
+    silence_ranges, sound_ranges = detect_silence_ranges(
+        audio=audio_data,
+        sample_rate=sample_rate,
         min_silence_len=args.min_silence_len,
-        seek_step=args.seek_step,
+        step_duration=step_duration,
         silence_threshold=args.silence_threshold
     )
 
     for r in silence_ranges:
         print(r)
 
-    complete_clip = VideoFileClip(args.input_filename)
     video_len = complete_clip.duration * 1000
 
     clips = []
@@ -165,7 +130,7 @@ def main():
             )
 
         for i, silence_range in enumerate(silence_ranges):
-            print(f'\r{i+1} of {len(silence_ranges)}', end='')
+            print(f'\r{i + 1} of {len(silence_ranges)}', end='')
             clips.append(
                 apply_speed_to_range(
                     complete_clip,
