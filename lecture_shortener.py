@@ -87,7 +87,13 @@ def arguments():
         '--min-silence-len',
         type=lambda x: validate_int_positive(x),
         default=1500,
-        help='section will be labeled as `silent` if silence is longer than `silence_threshold` in seconds',
+        help='section will be labeled as `silent` if silence is longer than `min-silence-len` in ms',
+    )
+    parser.add_argument(
+        '--silence-threshold',
+        type=lambda x: validate_int_positive(x),
+        default=-10,
+        help='frame is `silent` if volume is smaller than `silence-threshold',
     )
     parser.add_argument(
         '--seek-step',
@@ -106,7 +112,7 @@ def extract_audio_from_video(video_file):
     subprocess.call(command, shell=True)
 
 
-def detect_silence_ranges(audio, min_silence_len, seek_step=1, silence_threshold=-16) -> list:
+def detect_silence_ranges(audio, min_silence_len, seek_step, silence_threshold) -> list:
     print('[i] detecting silence ranges ...')
     return silence.detect_silence(
         audio,
@@ -129,7 +135,12 @@ def main():
     audio_segment = AudioSegment.from_wav(f'{TEMP_DIR}/{AUDIO_FILE_NAME}')
     os.remove(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
 
-    silence_ranges = detect_silence_ranges(audio_segment, args.min_silence_len, seek_step=args.seek_step)
+    silence_ranges = detect_silence_ranges(
+        audio=audio_segment,
+        min_silence_len=args.min_silence_len,
+        seek_step=args.seek_step,
+        silence_threshold=args.silence_threshold
+    )
 
     for r in silence_ranges:
         print(r)
