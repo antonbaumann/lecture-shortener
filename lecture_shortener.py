@@ -89,6 +89,12 @@ def arguments():
         default=1500,
         help='section will be labeled as `silent` if silence is longer than `silence_threshold` in seconds',
     )
+    parser.add_argument(
+        '--seek-step',
+        type=lambda x: validate_int_positive(x),
+        default=1,
+        help='check every nth frame to detect silence',
+    )
     return parser.parse_args()
 
 
@@ -100,12 +106,13 @@ def extract_audio_from_video(video_file):
     subprocess.call(command, shell=True)
 
 
-def detect_silence_ranges(audio, min_silence_len, silence_threshold=-16) -> list:
+def detect_silence_ranges(audio, min_silence_len, seek_step=1, silence_threshold=-16) -> list:
     print('[i] detecting silence ranges ...')
     return silence.detect_silence(
         audio,
         min_silence_len=min_silence_len,
-        silence_thresh=-silence_threshold
+        silence_thresh=-silence_threshold,
+        seek_step=seek_step
     )
 
 
@@ -122,7 +129,11 @@ def main():
     audio_segment = AudioSegment.from_wav(f'{TEMP_DIR}/{AUDIO_FILE_NAME}')
     os.remove(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
 
-    silence_ranges = detect_silence_ranges(audio_segment, args.min_silence_len)
+    silence_ranges = detect_silence_ranges(audio_segment, args.min_silence_len, seek_step=args.seek_step)
+
+    for r in silence_ranges:
+        print(r)
+
     complete_clip = VideoFileClip(args.input_filename)
     video_len = complete_clip.duration * 1000
 
@@ -138,7 +149,7 @@ def main():
             )
 
         for i, silence_range in enumerate(silence_ranges):
-            print(f'{i+1} of {len(silence_ranges)}\r', end='')
+            print(f'\r{i+1} of {len(silence_ranges)}', end='')
             clips.append(
                 apply_speed_to_range(
                     complete_clip,
