@@ -1,6 +1,7 @@
 import argparse
 import os.path
 import subprocess
+import time
 
 import moviepy.video.fx.all
 from moviepy.editor import *
@@ -91,8 +92,8 @@ def arguments():
     )
     parser.add_argument(
         '--silence-threshold',
-        type=lambda x: validate_int_positive(x),
-        default=-10,
+        type=int,
+        default=-16,
         help='frame is `silent` if volume is smaller than `silence-threshold',
     )
     parser.add_argument(
@@ -114,12 +115,16 @@ def extract_audio_from_video(video_file):
 
 def detect_silence_ranges(audio, min_silence_len, seek_step, silence_threshold) -> list:
     print('[i] detecting silence ranges ...')
-    return silence.detect_silence(
+    start = time.time()
+    ranges = silence.detect_silence(
         audio,
         min_silence_len=min_silence_len,
         silence_thresh=-silence_threshold,
         seek_step=seek_step
     )
+    duration = round(time.time() - start, 1)
+    print(f'took {duration} seconds')
+    return ranges
 
 
 def apply_speed_to_range(clip, silence_range, speed):
@@ -133,7 +138,7 @@ def main():
     extract_audio_from_video(args.input_filename)
 
     audio_segment = AudioSegment.from_wav(f'{TEMP_DIR}/{AUDIO_FILE_NAME}')
-    os.remove(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
+    # os.remove(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
 
     silence_ranges = detect_silence_ranges(
         audio=audio_segment,
@@ -149,7 +154,7 @@ def main():
     video_len = complete_clip.duration * 1000
 
     clips = []
-    if len(silence_ranges) != 0:
+    if silence_ranges and len(silence_ranges) != 0:
         if not silence_ranges[0][0] == 0:
             clips.append(
                 apply_speed_to_range(
@@ -189,7 +194,8 @@ def main():
         print("[i] no silence detected")
         clips.append(complete_clip)
 
-    concat_clip = concatenate_videoclips(clips, method='compose')
+    print()
+    concat_clip = concatenate_videoclips(clips, method='chain')
     concat_clip.write_videofile(args.output_filename)
 
 
