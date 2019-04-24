@@ -129,10 +129,23 @@ def main():
     clips = []
     if len(silence_ranges) != 0:
         if not silence_ranges[0][0] == 0:
-            clips.append(apply_speed_to_range(complete_clip, [0, silence_ranges[0][0] - 1], args.speed_sound))
+            clips.append(
+                apply_speed_to_range(
+                    complete_clip,
+                    (0, silence_ranges[0][0] - 1),
+                    args.speed_sound
+                )
+            )
+
         for i, silence_range in enumerate(silence_ranges):
-            print(f'{i} of {len(silence_ranges)}')
-            clips.append(apply_speed_to_range(complete_clip, silence_range, args.speed_silence))
+            print(f'{i+1} of {len(silence_ranges)}\r', end='')
+            clips.append(
+                apply_speed_to_range(
+                    complete_clip,
+                    silence_range,
+                    args.speed_silence
+                )
+            )
             if i < len(silence_ranges) - 1:
                 clips.append(
                     apply_speed_to_range(
@@ -141,6 +154,7 @@ def main():
                         args.speed_sound
                     )
                 )
+
         if silence_ranges[-1][1] < video_len:
             clips.append(
                 apply_speed_to_range(
