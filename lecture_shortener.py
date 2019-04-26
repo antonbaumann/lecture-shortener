@@ -7,7 +7,7 @@ import numpy as np
 from moviepy.editor import *
 from scipy.io import wavfile
 
-import util
+import arguments
 
 TEMP_DIR = '.tmp'
 AUDIO_FILE_NAME = 'audio.wav'
@@ -98,7 +98,7 @@ def apply_speed_to_range(clip, range_to_modify, speed):
 
 
 def main():
-    args = util.arguments()
+    args = arguments.arguments()
 
     extract_audio_from_video(args.input_filename)
 
