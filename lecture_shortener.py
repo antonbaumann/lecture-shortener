@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import os.path
 import subprocess
 import time
@@ -11,14 +14,17 @@ import arguments
 
 TEMP_DIR = '.tmp'
 AUDIO_FILE_NAME = 'audio.wav'
+DEVNULL = open(os.devnull, 'w')
 
 
 def extract_audio_from_video(video_file):
     print('[i] extracting audio from video ...')
     if not os.path.exists(TEMP_DIR):
         os.mkdir(TEMP_DIR)
-    command = f'ffmpeg -i {video_file} -ab 160k -ac 2 -ar 44100 -vn {os.path.join(TEMP_DIR, AUDIO_FILE_NAME)}'
-    subprocess.call(command, shell=True)
+    command = f'ffmpeg -i {video_file} -ab 160k -ac 2 -ar 44100 ' \
+        f'-vn {os.path.join(TEMP_DIR, AUDIO_FILE_NAME)} -y'
+    subprocess.call(command, shell=True, stdout=DEVNULL)
+    print('[✓] done!\n')
 
 
 def get_energy(samples):
@@ -33,9 +39,14 @@ def windows(samples, window_size, step_size):
         yield samples[start:end]
 
 
+def time_remaining(iteration, total_iterations, start):
+    iterations_per_sec = (iteration + 1) / (time.time() - start)
+    return (total_iterations - (iteration + 1)) / iterations_per_sec
+
+
 def detect_silence_ranges(audio, sample_rate, min_silence_len, step_duration, silence_threshold):
     print('[i] detecting silence ranges ...')
-    start = time.time()
+    function_start = time.time()
 
     print('    - converting audio to mono')
     mono_audio = np.sum(audio, axis=1) / 2
@@ -66,9 +77,8 @@ def detect_silence_ranges(audio, sample_rate, min_silence_len, step_duration, si
     print(f'[i] finding silent ranges')
     for i, energy in enumerate(window_energy):
         if i % 1000 == 0:
-            iterations_per_sec = (i + 1) / (time.time() - start_loop)
-            time_remaining = (step_count - (i + 1)) / iterations_per_sec
-            print(f'\r    {i // 1000}k of {step_count // 1000}k  ETA: {round(time_remaining, 2)}s    ', end='')
+            remaining = time_remaining(i, step_count, start_loop)
+            print(f'\r    {i // 1000}k of {step_count // 1000}k  ETA: {round(remaining, 2)}s    ', end='')
         if energy <= silence_threshold:
             has_silent_audio[i] = 1
 
@@ -87,8 +97,8 @@ def detect_silence_ranges(audio, sample_rate, min_silence_len, step_duration, si
                     ranges.append((start / sample_rate, stop / sample_rate))  # convert to seconds
                 last_silent = -1
 
-    duration = round(time.time() - start, 1)
-    print(f'took {duration} seconds')
+    duration = round(time.time() - function_start, 1)
+    print(f'\n[i] took {duration} seconds')
     return ranges  # in seconds
 
 
@@ -97,14 +107,24 @@ def apply_speed_to_range(clip, range_to_modify, speed):
     return moviepy.video.fx.all.speedx(subclip, factor=speed)
 
 
+def format_seconds(seconds):
+    ret = ''
+    minutes = int(seconds / 60)
+    hours = minutes // 60
+    if hours != 0:
+        ret += f'{hours}h'
+    if hours != 0 or minutes % 60 != 0:
+        ret += f' {minutes}m '
+    ret += f'{int(seconds % 60)}s'
+    return ret
+
+
 def main():
     args = arguments.arguments()
 
     extract_audio_from_video(args.input_filename)
-
     complete_clip = VideoFileClip(args.input_filename)
     sample_rate, audio_data = wavfile.read(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
-
     os.remove(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
 
     step_duration = args.step_duration if args.step_duration else args.min_silence_len / 10
@@ -116,12 +136,24 @@ def main():
         silence_threshold=args.silence_threshold
     )
 
+    saved_time = 0
+    print('[i] silence ranges:')
     for range in ranges:
-        print(range)
+        saved_time += range[1] - range[0]
+        print(f'    {range}')
+
+    print()
+    print(f'[i] saved time: {format_seconds(saved_time)}')
+    prompt = 'prompt'
+    while prompt not in {'Y', 'y', ''}:
+        prompt = input(f'[!] do you want to continue? [Y/n]: ')
+        if prompt in {'n', 'N'}:
+            exit(0)
 
     video_len = complete_clip.duration
 
     clips = []
+    print(f'[i] applying speed to clips')
     if ranges and len(ranges) != 0:
         if not ranges[0][0] == 0:
             clips.append(
@@ -132,8 +164,10 @@ def main():
                 )
             )
 
+        start_apply_speed = time.time()
         for i, silence_range in enumerate(ranges):
-            print(f'\r{i + 1} of {len(ranges)}', end='')
+            remaining = time_remaining(i, len(ranges), start_apply_speed)
+            print(f'\r    {i + 1} of {len(ranges)}  ETA: {round(remaining, 2)} s    ', end='')
             clips.append(
                 # todo fade in
                 apply_speed_to_range(
@@ -162,7 +196,13 @@ def main():
             )
     else:
         print("[i] no silence detected")
-        clips.append(complete_clip)
+        clips.append(
+            apply_speed_to_range(
+                complete_clip,
+                (0, video_len),
+                args.speed_sound
+            )
+        )
 
     print()
     concat_clip = concatenate_videoclips(clips, method='compose')
