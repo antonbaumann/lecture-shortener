@@ -80,7 +80,9 @@ def detect_silence_ranges(audio, sample_rate, min_silence_len, step_duration, si
                 last_silent = i
         else:
             if last_silent >= 0:  # transition from silence -> sound
-                start, stop = last_silent * step_size, (i - 1) * step_size  # converting from window pos -> frame pos
+                padding_size = sample_rate * 1  # one second padding so dont cut sound off
+                start = last_silent * step_size + padding_size
+                stop = (i - 1) * step_size - padding_size
                 if stop - start >= window_size:
                     ranges.append((start / sample_rate, stop / sample_rate))  # convert to seconds
                 last_silent = -1
@@ -90,8 +92,8 @@ def detect_silence_ranges(audio, sample_rate, min_silence_len, step_duration, si
     return ranges  # in seconds
 
 
-def apply_speed_to_range(clip, silence_range, speed):
-    subclip = clip.subclip(silence_range[0], silence_range[1])
+def apply_speed_to_range(clip, range_to_modify, speed):
+    subclip = clip.subclip(range_to_modify[0], range_to_modify[1])
     return moviepy.video.fx.all.speedx(subclip, factor=speed)
 
 
@@ -133,11 +135,13 @@ def main():
         for i, silence_range in enumerate(ranges):
             print(f'\r{i + 1} of {len(ranges)}', end='')
             clips.append(
+                # todo fade in
                 apply_speed_to_range(
                     complete_clip,
                     silence_range,
                     args.speed_silence
                 )
+                # todo fade out
             )
             if i < len(ranges) - 1:
                 clips.append(
