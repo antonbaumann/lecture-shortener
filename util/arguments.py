@@ -94,6 +94,6 @@ def arguments():
         '--step-duration',
         type=lambda x: validate_int_positive(x),
         default=None,
-        help='check every nth frame to detect silence',
+        help='check every n milliseconds for silence',
     )
     return parser.parse_args()
