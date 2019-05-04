@@ -16,7 +16,7 @@ def format_seconds(seconds) -> str:
     if hours != 0:
         ret += f'{hours}h'
     if hours != 0 or minutes % 60 != 0:
-        ret += f' {minutes}m '
+        ret += f' {minutes % 60}m '
     ret += f'{int(seconds % 60)}s'
     return ret
 
