@@ -39,6 +39,10 @@ def detect_silence_ranges(
     print('    - finding maximum amplitude')
     max_amplitude = np.max(mono_audio)
     max_energy = get_energy([max_amplitude])
+    print('    - finding average energy')
+    avg_energy = get_energy(mono_audio)
+    print(f'    [i] average energy is {avg_energy}')
+    print(f'    [i] maximum energy is {max_energy}')
 
     window_size = int(min_silence_len * sample_rate / 1000)  # size of window in frame count
     step_size = int(step_duration * sample_rate / 1000)  # step size in frame count
@@ -52,7 +56,7 @@ def detect_silence_ranges(
         step_size=step_size
     )
 
-    window_energy = (get_energy(w) / max_energy for w in sample_windows)
+    window_energy = (get_energy(w) / avg_energy for w in sample_windows)
     # todo: find out exact size of step count
     step_count = len(audio_data) // step_size
 

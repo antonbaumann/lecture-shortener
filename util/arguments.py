@@ -87,7 +87,7 @@ def arguments():
     parser.add_argument(
         '--silence-threshold',
         type=float,
-        default=0.0001,
+        default=0.1,
         help='frame is `silent` if volume is smaller than `silence-threshold',
     )
     parser.add_argument(
