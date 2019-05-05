@@ -6,6 +6,8 @@ import subprocess
 import time
 
 import numpy as np
+from audiotsm import phasevocoder
+from audiotsm.io.array import ArrayReader, ArrayWriter
 from scipy.io import wavfile
 
 import lecture_shortener as ls
@@ -77,6 +79,14 @@ def extract_audio_from_video(video_file, threads=1):
         f'-vn {os.path.join(ls.TEMP_DIR, ls.AUDIO_FILE_NAME)} -y'
     subprocess.call(command, shell=True, stdout=ls.DEVNULL)
     print('[✓] done!\n')
+
+
+def apply_speed_to_audio(audio, speed):
+    reader = ArrayReader(audio)
+    writer = ArrayWriter(2)
+    tsm = phasevocoder(reader.channels, speed)
+    tsm.run(reader, writer)
+    return writer.data
 
 
 # calculates the "perceived loudness" in a sample range
