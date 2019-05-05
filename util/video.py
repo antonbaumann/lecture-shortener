@@ -66,7 +66,7 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
                 clips.append(
                     _apply_speed_to_range(
                         complete_clip,
-                        (silence_range[1] + 1, ranges[i + 1][0]),
+                        (silence_range[1], ranges[i + 1][0]),
                         speed_sound
                     )
                 )
@@ -75,7 +75,7 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
             clips.append(
                 _apply_speed_to_range(
                     complete_clip,
-                    (ranges[-1][1] + 1, video_len),
+                    (ranges[-1][1], video_len),
                     speed_sound
                 )
             )
