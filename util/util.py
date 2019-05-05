@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import time
+import os, shutil
 
 
 def time_remaining(iteration, total_iterations, start):
@@ -30,3 +31,15 @@ def show_saved_time_info(ranges):
 
     print()
     print(f'[i] saved time: {format_seconds(saved_time)}')
+
+
+def clear_dir(folder, only_files = True):
+    for element in os.listdir(folder):
+        element_path = os.path.join(folder, element)
+        try:
+            if os.path.isfile(element_path):
+                os.unlink(element_path)
+            elif os.path.isdir(element_path) and not only_files:
+                shutil.rmtree(element_path)
+        except Exception as e:
+            print(e)

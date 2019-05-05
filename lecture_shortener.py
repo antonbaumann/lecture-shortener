@@ -46,6 +46,8 @@ def main():
 
     concat_clip.write_videofile(args.output_filename, threads=4)
 
+    util.clear_dir(".tmp/")
+
 
 if __name__ == '__main__':
     main()

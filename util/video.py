@@ -51,7 +51,7 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
 
         start_apply_speed = time.time()
         for i, silence_range in enumerate(ranges):
-            remaining = util.time_remaining(i, len(ranges), start_apply_speed)
+            # remaining = util.time_remaining(i, len(ranges), start_apply_speed)
             # print(f'\r    {i + 1} of {len(ranges)}  ETA: {round(remaining, 2)} s    ', end='')
             print(f'\r    {i + 1} of {len(ranges)}', end='')
             clips.append(
