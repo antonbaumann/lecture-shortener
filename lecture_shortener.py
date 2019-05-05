@@ -14,7 +14,7 @@ def main():
     args = arguments.arguments()
 
     # audio processing
-    sample_rate, audio_data = audio.get_audio_data(args.input_filename)
+    sample_rate, audio_data = audio.get_audio_data(args.input_filename, args.threads)
     step_duration = args.step_duration if args.step_duration else args.min_silence_len / 10
     ranges = audio.detect_silence_ranges(
         audio_data=audio_data,
@@ -42,7 +42,7 @@ def main():
     )
     print()
     concat_clip = concatenate_videoclips(clips, method='compose')
-    concat_clip.write_videofile(args.output_filename, threads=4)
+    concat_clip.write_videofile(args.output_filename, threads=args.threads)
 
 
 if __name__ == '__main__':
