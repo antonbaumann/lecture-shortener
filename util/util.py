@@ -5,19 +5,19 @@ import time
 import os, shutil
 
 
-def time_remaining(iteration, total_iterations, start):
+def time_remaining(iteration, total_iterations, start) -> float:
     iterations_per_sec = (iteration + 1) / (time.time() - start)
     return (total_iterations - (iteration + 1)) / iterations_per_sec
 
 
-def format_seconds(seconds):
+def format_seconds(seconds) -> str:
     ret = ''
     minutes = int(seconds / 60)
     hours = minutes // 60
     if hours != 0:
         ret += f'{hours}h'
     if hours != 0 or minutes % 60 != 0:
-        ret += f' {minutes}m '
+        ret += f' {minutes % 60}m '
     ret += f'{int(seconds % 60)}s'
     return ret
 

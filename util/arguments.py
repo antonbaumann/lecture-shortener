@@ -87,13 +87,20 @@ def arguments():
     parser.add_argument(
         '--silence-threshold',
         type=float,
-        default=0.0001,
+        default=0.1,
         help='frame is `silent` if volume is smaller than `silence-threshold',
     )
     parser.add_argument(
         '--step-duration',
         type=lambda x: validate_int_positive(x),
         default=None,
-        help='check every nth frame to detect silence',
+        help='check every n milliseconds for silence',
+    )
+    parser.add_argument(
+        '--threads',
+        metavar='THREADS',
+        type=lambda x: validate_int_positive(x),
+        default=2,
+        help='general video speed',
     )
     return parser.parse_args()

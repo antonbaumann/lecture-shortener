@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os.path
-
 from moviepy.editor import *
-from scipy.io import wavfile
 
 from util import arguments, audio, util, video
 
@@ -16,11 +13,8 @@ DEVNULL = open(os.devnull, 'w')
 def main():
     args = arguments.arguments()
 
-    complete_clip = VideoFileClip(args.input_filename)
-    audio.extract_audio_from_video(args.input_filename)
-    sample_rate, audio_data = wavfile.read(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
-    os.remove(os.path.join(TEMP_DIR, AUDIO_FILE_NAME))
-
+    # audio processing
+    sample_rate, audio_data = audio.get_audio_data(args.input_filename, args.threads)
     step_duration = args.step_duration if args.step_duration else args.min_silence_len / 10
     ranges = audio.detect_silence_ranges(
         audio_data=audio_data,
@@ -38,13 +32,17 @@ def main():
         if prompt in {'n', 'N'}:
             exit(0)
 
-    clips = video.generate_clips(ranges, complete_clip, args.speed_sound, args.speed_silence)
-
+    # video processing
+    complete_clip = VideoFileClip(args.input_filename)
+    clips = video.generate_clips(
+        ranges,
+        complete_clip,
+        args.speed_sound,
+        args.speed_silence
+    )
     print()
     concat_clip = concatenate_videoclips(clips, method='compose')
-    print(concat_clip.duration)
-
-    concat_clip.write_videofile(args.output_filename, threads=4)
+    concat_clip.write_videofile(args.output_filename, threads=args.threads)
 
     util.clear_dir(".tmp/")
 
