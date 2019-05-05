@@ -13,8 +13,8 @@ from util import util
 
 
 # get sample rate and audio data from video file
-def get_audio_data(video_file_path) -> (int, list):
-    extract_audio_from_video(video_file_path)
+def get_audio_data(video_file_path, threads=1) -> (int, list):
+    extract_audio_from_video(video_file_path, threads)
     sample_rate, audio_data = wavfile.read(os.path.join(ls.TEMP_DIR, ls.AUDIO_FILE_NAME))
     os.remove(os.path.join(ls.TEMP_DIR, ls.AUDIO_FILE_NAME))
     return sample_rate, audio_data
@@ -29,7 +29,6 @@ def detect_silence_ranges(
     step_duration,
     silence_threshold
 ) -> list:
-
     print('[i] detecting silence ranges ...')
     function_start = time.time()
 
@@ -70,11 +69,11 @@ def detect_silence_ranges(
 
 
 # converts a video file into a wav file and saves it to TEMP_DIR/AUDIO_FILE_NAME
-def extract_audio_from_video(video_file):
+def extract_audio_from_video(video_file, threads=1):
     print('[i] extracting audio from video ...')
     if not os.path.exists(ls.TEMP_DIR):
         os.mkdir(ls.TEMP_DIR)
-    command = f'ffmpeg -i {video_file} -ab 160k -ac 2 -ar 44100 ' \
+    command = f'ffmpeg -i {video_file} -ab 160k -ac 2 -ar 44100 -threads {threads} ' \
         f'-vn {os.path.join(ls.TEMP_DIR, ls.AUDIO_FILE_NAME)} -y'
     subprocess.call(command, shell=True, stdout=ls.DEVNULL)
     print('[✓] done!\n')

@@ -96,4 +96,11 @@ def arguments():
         default=None,
         help='check every n milliseconds for silence',
     )
+    parser.add_argument(
+        '--threads',
+        metavar='THREADS',
+        type=lambda x: validate_int_positive(x),
+        default=2,
+        help='general video speed',
+    )
     return parser.parse_args()
