@@ -6,6 +6,8 @@ import subprocess
 import time
 
 import numpy as np
+from audiotsm import phasevocoder
+from audiotsm.io.array import ArrayReader, ArrayWriter
 
 import lecture_shortener as ls
 from util import util
@@ -19,6 +21,14 @@ def extract_audio_from_video(video_file):
         f'-vn {os.path.join(ls.TEMP_DIR, ls.AUDIO_FILE_NAME)} -y'
     subprocess.call(command, shell=True, stdout=ls.DEVNULL)
     print('[✓] done!\n')
+
+
+def apply_speed_to_audio(audio, speed):
+    reader = ArrayReader(audio)
+    writer = ArrayWriter(2)
+    tsm = phasevocoder(reader.channels, speed)
+    tsm.run(reader, writer)
+    return writer.data
 
 
 def get_energy(samples):

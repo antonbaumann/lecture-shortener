@@ -42,6 +42,8 @@ def main():
 
     print()
     concat_clip = concatenate_videoclips(clips, method='compose')
+    print(concat_clip.duration)
+
     concat_clip.write_videofile(args.output_filename, threads=4)
 
 
