@@ -18,7 +18,8 @@ def _apply_speed_to_range(clip, range_to_modify, speed):
 
     # extract unmodified audio data
     audio_data = subclip.audio
-    audio_array = np.array(audio_data.to_soundarray())
+    sound_array = audio_data.to_soundarray()
+    audio_array = np.array(sound_array)
 
     fast_audio_array = audio.apply_speed_to_audio(audio_array.T, speed)     # without modifying pitch!
 
@@ -43,7 +44,7 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
             clips.append(
                 _apply_speed_to_range(
                     complete_clip,
-                    (0, ranges[0][0] - 1),
+                    (0, ranges[0][0]),
                     speed_sound
                 )
             )
@@ -65,7 +66,7 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
                 clips.append(
                     _apply_speed_to_range(
                         complete_clip,
-                        (silence_range[1] + 1, ranges[i + 1][0] - 1),
+                        (silence_range[1] + 1, ranges[i + 1][0]),
                         speed_sound
                     )
                 )
