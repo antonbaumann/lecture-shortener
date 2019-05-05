@@ -6,7 +6,10 @@ import os, shutil
 
 
 def time_remaining(iteration, total_iterations, start) -> float:
-    iterations_per_sec = (iteration + 1) / (time.time() - start)
+    delta = time.time() - start
+    if delta == 0:
+        delta = 1
+    iterations_per_sec = (iteration + 1) / delta
     return (total_iterations - (iteration + 1)) / iterations_per_sec
 
 
@@ -33,7 +36,7 @@ def show_saved_time_info(ranges):
     print(f'[i] saved time: {format_seconds(saved_time)}')
 
 
-def clear_dir(folder, only_files = True):
+def clear_dir(folder, only_files=True):
     for element in os.listdir(folder):
         element_path = os.path.join(folder, element)
         try:

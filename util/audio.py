@@ -6,12 +6,9 @@ import subprocess
 import time
 
 import numpy as np
-<<<<<<< HEAD
 from audiotsm import phasevocoder
 from audiotsm.io.array import ArrayReader, ArrayWriter
-=======
 from scipy.io import wavfile
->>>>>>> master
 
 import lecture_shortener as ls
 from util import util
@@ -84,7 +81,6 @@ def extract_audio_from_video(video_file, threads=1):
     print('[✓] done!\n')
 
 
-<<<<<<< HEAD
 def apply_speed_to_audio(audio, speed):
     reader = ArrayReader(audio)
     writer = ArrayWriter(2)
@@ -93,11 +89,8 @@ def apply_speed_to_audio(audio, speed):
     return writer.data
 
 
-def get_energy(samples):
-=======
 # calculates the "perceived loudness" in a sample range
 def get_energy(samples) -> float:
->>>>>>> master
     return np.sum(np.power(samples, 2)) / float(len(samples))
 
 

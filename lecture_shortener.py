@@ -44,7 +44,7 @@ def main():
     concat_clip = concatenate_videoclips(clips, method='compose')
     concat_clip.write_videofile(args.output_filename, threads=args.threads)
 
-    util.clear_dir(".tmp/")
+    util.clear_dir(TEMP_DIR)
 
 
 if __name__ == '__main__':
