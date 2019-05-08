@@ -1,16 +1,24 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import time
 import os.path
+import time
 
 import moviepy.video.fx.all
 import numpy as np
-from scipy.io.wavfile import write
+from scipy.io import wavfile
 
-from util import util
-from util import audio
 import lecture_shortener as ls
+from util import audio
+from util import util
+
+
+def start_time(r) -> int:
+    return r[0]
+
+
+def end_time(r) -> int:
+    return r[1]
 
 
 def _apply_speed_to_range(clip, range_to_modify, speed):
@@ -21,13 +29,15 @@ def _apply_speed_to_range(clip, range_to_modify, speed):
     sound_array = audio_data.to_soundarray()
     audio_array = np.array(sound_array)
 
-    fast_audio_array = audio.apply_speed_to_audio(audio_array.T, speed)     # without modifying pitch!
+    fast_audio_array = audio.apply_speed_to_audio(audio_array.T, speed)  # without modifying pitch!
 
     # workaround in order to be able to create an audio file clip from the modified audio
-    temp_file_path = os.path.join(ls.TEMP_DIR, f'{int(range_to_modify[0]*100)}.wav')
-    write(temp_file_path, audio_data.fps, fast_audio_array.T)
+    # saves .wav chunks in TEMPDIR
+    temp_file_path = os.path.join(ls.TEMP_DIR, f'{int(range_to_modify[0] * 100)}.wav')
+    wavfile.write(temp_file_path, audio_data.fps, fast_audio_array.T)
     fast_audio = moviepy.audio.io.AudioFileClip.AudioFileClip(temp_file_path)
 
+    # apply speed to subclip
     fast_subclip = moviepy.video.fx.all.speedx(subclip, factor=None, final_duration=fast_audio.duration)
     fast_subclip = fast_subclip.set_audio(fast_audio)
 
@@ -39,47 +49,9 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
     print(f'[i] applying speed to clips')
     video_len = complete_clip.duration
     clips = []
-    if ranges and len(ranges) != 0:
-        if not ranges[0][0] == 0:
-            clips.append(
-                _apply_speed_to_range(
-                    complete_clip,
-                    (0, ranges[0][0]),
-                    speed_sound
-                )
-            )
 
-        start_apply_speed = time.time()
-        for i, silence_range in enumerate(ranges):
-            remaining = util.time_remaining(i, len(ranges), start_apply_speed)
-            print(f'\r    {i + 1} of {len(ranges)}  ETA: {round(remaining, 2)} s    ', end='')
-            clips.append(
-                # todo fade in
-                _apply_speed_to_range(
-                    complete_clip,
-                    silence_range,
-                    speed_silence
-                )
-                # todo fade out
-            )
-            if i < len(ranges) - 1:
-                clips.append(
-                    _apply_speed_to_range(
-                        complete_clip,
-                        (silence_range[1], ranges[i + 1][0]),
-                        speed_sound
-                    )
-                )
-
-        if ranges[-1][1] < video_len:
-            clips.append(
-                _apply_speed_to_range(
-                    complete_clip,
-                    (ranges[-1][1], video_len),
-                    speed_sound
-                )
-            )
-    else:
+    # check if no silence range is detected
+    if not ranges or len(ranges) == 0:
         print("[i] no silence detected")
         clips.append(
             _apply_speed_to_range(
@@ -88,5 +60,45 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
                 speed_sound
             )
         )
-    return clips
+        return clips
 
+    # beginning of video is silent
+    if not start_time(ranges[0]) == 0:
+        clips.append(
+            _apply_speed_to_range(
+                complete_clip,
+                (0, start_time(ranges[0])),
+                speed_sound
+            )
+        )
+
+    start = time.time()
+    for i in range(len(ranges)):
+        remaining = util.time_remaining(i, len(ranges), start)
+        print(f'\r    {i + 1} of {len(ranges)}  ETA: {round(remaining, 2)} s    ', end='')
+        clips.append(
+            _apply_speed_to_range(
+                complete_clip,
+                ranges[i],
+                speed_silence
+            )
+        )
+        if i < len(ranges) - 1:
+            clips.append(
+                _apply_speed_to_range(
+                    complete_clip,
+                    (end_time(ranges[i]), start_time(ranges[i + 1])),
+                    speed_sound
+                )
+            )
+
+    if ranges[-1][1] < video_len:
+        clips.append(
+            _apply_speed_to_range(
+                complete_clip,
+                (end_time(ranges[-1]), video_len),
+                speed_sound
+            )
+        )
+
+    return clips
