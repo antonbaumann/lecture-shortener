@@ -10,15 +10,14 @@ from audiotsm import phasevocoder
 from audiotsm.io.array import ArrayReader, ArrayWriter
 from scipy.io import wavfile
 
-import lecture_shortener as ls
-from util import util
+from lecture_shortener import util, globals
 
 
 # get sample rate and audio data from video file
 def get_audio_data(video_file_path, threads=1) -> (int, list):
     extract_audio_from_video(video_file_path, threads)
-    sample_rate, audio_data = wavfile.read(os.path.join(ls.TEMP_DIR, ls.AUDIO_FILE_NAME))
-    os.remove(os.path.join(ls.TEMP_DIR, ls.AUDIO_FILE_NAME))
+    sample_rate, audio_data = wavfile.read(os.path.join(globals.TEMP_DIR, globals.AUDIO_FILE_NAME))
+    os.remove(os.path.join(globals.TEMP_DIR, globals.AUDIO_FILE_NAME))
     return sample_rate, audio_data
 
 
@@ -73,11 +72,11 @@ def detect_silence_ranges(
 # converts a video file into a wav file and saves it to TEMP_DIR/AUDIO_FILE_NAME
 def extract_audio_from_video(video_file, threads=1):
     print('[i] extracting audio from video ...')
-    if not os.path.exists(ls.TEMP_DIR):
-        os.mkdir(ls.TEMP_DIR)
+    if not os.path.exists(globals.TEMP_DIR):
+        os.mkdir(globals.TEMP_DIR)
     command = f'ffmpeg -i {video_file} -ab 160k -ac 2 -ar 44100 -threads {threads} ' \
-        f'-vn {os.path.join(ls.TEMP_DIR, ls.AUDIO_FILE_NAME)} -y'
-    subprocess.call(command, shell=True, stdout=ls.DEVNULL)
+        f'-vn {os.path.join(globals.TEMP_DIR, globals.AUDIO_FILE_NAME)} -y'
+    subprocess.call(command, shell=True, stdout=globals.DEVNULL)
     print('[✓] done!\n')
 
 

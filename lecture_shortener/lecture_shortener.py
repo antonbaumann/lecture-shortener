@@ -3,11 +3,7 @@
 
 from moviepy.editor import *
 
-from util import arguments, audio, util, video
-
-TEMP_DIR = '.tmp'
-AUDIO_FILE_NAME = 'audio.wav'
-DEVNULL = open(os.devnull, 'w')
+from lecture_shortener import audio, arguments, util, video, globals
 
 
 def main():
@@ -44,7 +40,7 @@ def main():
     concat_clip = concatenate_videoclips(clips, method='compose')
     concat_clip.write_videofile(args.output_filename, threads=args.threads)
 
-    util.clear_dir(TEMP_DIR)
+    util.clear_dir(globals.TEMP_DIR)
 
 
 if __name__ == '__main__':

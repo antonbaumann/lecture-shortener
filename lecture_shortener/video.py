@@ -8,9 +8,7 @@ import moviepy.video.fx.all
 import numpy as np
 from scipy.io import wavfile
 
-import lecture_shortener as ls
-from util import audio
-from util import util
+from lecture_shortener import globals, audio, util
 
 
 def _apply_speed_to_range(clip, range_to_modify, speed):
@@ -25,7 +23,7 @@ def _apply_speed_to_range(clip, range_to_modify, speed):
 
     # workaround in order to be able to create an audio file clip from the modified audio
     # saves .wav chunks in TEMPDIR
-    temp_file_path = os.path.join(ls.TEMP_DIR, f'{int(range_to_modify[0] * 100)}.wav')
+    temp_file_path = os.path.join(globals.TEMP_DIR, f'{int(range_to_modify[0] * 100)}.wav')
     wavfile.write(temp_file_path, audio_data.fps, fast_audio_array.T)
     fast_audio = moviepy.audio.io.AudioFileClip.AudioFileClip(temp_file_path)
 
