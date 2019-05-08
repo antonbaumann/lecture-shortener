@@ -10,7 +10,7 @@ from audiotsm import phasevocoder
 from audiotsm.io.array import ArrayReader, ArrayWriter
 from scipy.io import wavfile
 
-from lecture_shortener import util, globals
+from lecture_shortener import util, globals, window
 
 
 # get sample rate and audio data from video file
@@ -50,17 +50,16 @@ def detect_silence_ranges(
     print(f'[i] window size: {window_size} frames')
     print(f'[i] step size: {step_size} frames')
 
-    sample_windows = _window_generator(
-        samples=mono_audio,
-        window_size=window_size,
-        step_size=step_size
-    )
+    print(f'[i] finding silent ranges')
+    window_generator = window.WindowGenerator(mono_audio, window_size, step_size)
+    window_energy = []
+    while window_generator.has_next():
+        if window_generator.position % 1000:
+            window_generator.progress()
+        window_energy.append(window_generator.next_window() / avg_energy)
 
-    window_energy = (get_energy(w) / avg_energy for w in sample_windows)
-    # todo: find out exact size of step count
     step_count = len(audio_data) // step_size
 
-    print(f'[i] finding silent ranges')
     has_silent_audio = _detect_samples_with_silent_audio(window_energy, step_count, silence_threshold)
     ranges = _generate_ranges_from_array(has_silent_audio, window_size, step_size, sample_rate)
 
