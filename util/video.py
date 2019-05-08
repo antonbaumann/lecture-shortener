@@ -13,14 +13,6 @@ from util import audio
 from util import util
 
 
-def start_time(r) -> int:
-    return r[0]
-
-
-def end_time(r) -> int:
-    return r[1]
-
-
 def _apply_speed_to_range(clip, range_to_modify, speed):
     subclip = clip.subclip(range_to_modify[0], range_to_modify[1])
 
@@ -46,6 +38,13 @@ def _apply_speed_to_range(clip, range_to_modify, speed):
 
 # applies silence- and sound-speed to video
 def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
+    # utility functions: return start or end of silence range in seconds
+    def start_time(r) -> int:
+        return r[0]
+
+    def end_time(r) -> int:
+        return r[1]
+
     print(f'[i] applying speed to clips')
     video_len = complete_clip.duration
     clips = []
