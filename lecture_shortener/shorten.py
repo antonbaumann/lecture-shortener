@@ -4,6 +4,7 @@
 from moviepy.editor import *
 
 from lecture_shortener import audio, arguments, util, video, globals
+from silence_detection import silence
 
 
 def main():
@@ -12,12 +13,14 @@ def main():
     # audio processing
     sample_rate, audio_data = audio.get_audio_data(args.input_filename, args.threads)
     step_duration = args.step_duration if args.step_duration else args.min_silence_len / 10
-    ranges = audio.detect_silence_ranges(
+    ranges = silence.detect_silence_ranges(
         audio_data=audio_data,
         sample_rate=sample_rate,
         min_silence_len=args.min_silence_len,
         step_duration=step_duration,
-        silence_threshold=args.silence_threshold
+        silence_threshold=args.silence_threshold,
+        verbose=True,
+        progress=True,
     )
 
     util.show_saved_time_info(ranges)

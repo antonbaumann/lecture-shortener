@@ -34,9 +34,9 @@ def _apply_speed_to_range(clip, range_to_modify, speed):
     return fast_subclip
 
 
-# applies silence- and sound-speed to video
+# applies silence_detection- and sound-speed to video
 def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
-    # utility functions: return start or end of silence range in seconds
+    # utility functions: return start or end of silence_detection range in seconds
     def start_time(r) -> int:
         return r[0]
 
@@ -47,9 +47,9 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
     video_len = complete_clip.duration
     clips = []
 
-    # check if no silence range is detected
+    # check if no silence_detection range is detected
     if not ranges or len(ranges) == 0:
-        print("[i] no silence detected")
+        print("[i] no silence_detection detected")
         clips.append(
             _apply_speed_to_range(
                 complete_clip,

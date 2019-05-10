@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from lecture_shortener import util, audio
+from silence_detection import util, silence
 
 
 class WindowGenerator:
@@ -13,27 +13,27 @@ class WindowGenerator:
         self.step_size = step_size
 
         self.position = 0
+        self.nr_windows = int((len(self.audio_data) - self.window_size + self.step_size) // self.step_size)
 
-        self.start = time.time()
+        self.start_time = time.time()
         self.chunk_size = math.gcd(window_size, step_size)
-        self.cache_size = window_size // self.chunk_size
-        self.cache = Cache(self.cache_size)
-        self.init_cache()
+        self.cache = Cache(window_size // self.chunk_size)
+        self._init_cache()
 
-    def init_cache(self):
-        for i in range(self.chunk_size - 1):
-            self.cache.add(audio.get_energy(self.audio_data[i * self.chunk_size:(i + 1) * self.chunk_size]))
+    def _init_cache(self):
+        for i in range(self.cache.size - 1):
+            self.cache.add(silence.get_energy(self.audio_data[i * self.chunk_size:(i + 1) * self.chunk_size]))
 
     def has_next(self):
-        return self.position * self.chunk_size < len(self.audio_data)
+        return self.position < self.nr_windows
 
     def progress(self):
-        remaining = util.time_remaining(self.position, len(self.audio_data) // self.chunk_size, self.start)
+        remaining = util.time_remaining(self.position, len(self.audio_data) // self.chunk_size, self.start_time)
         print(f'\r{self.position} of {len(self.audio_data) // self.chunk_size}  ETA: {remaining}', end='')
 
     def next_window(self):
         self.cache.add(
-            audio.get_energy(
+            silence.get_energy(
                 self.audio_data[self.cache.index * self.chunk_size: (self.cache.index + 1) * self.chunk_size]
             )
         )
@@ -52,4 +52,4 @@ class Cache:
         self.index += 1
 
     def get_energy(self):
-        return audio.get_energy(self.data)
+        return sum(self.data) / self.size

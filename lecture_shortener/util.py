@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import os
+import shutil
 import time
-import os, shutil
 
 
 def time_remaining(iteration, total_iterations, start) -> float:
@@ -27,7 +28,7 @@ def format_seconds(seconds) -> str:
 
 def show_saved_time_info(ranges):
     saved_time = 0
-    print('[i] silence ranges:')
+    print('[i] silence_detection ranges:')
     for range in ranges:
         saved_time += range[1] - range[0]
         print(f'    {range}')
