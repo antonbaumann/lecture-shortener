@@ -40,13 +40,13 @@ def detect_silence_ranges(
     printv(f'[i] step size: {step_size} frames', verbose)
 
     printv(f'[i] finding silent ranges', verbose)
-    window_generator = window.WindowGenerator(mono_audio, window_size, step_size)
+    window_generator = window.WindowEnergyIterator(mono_audio, window_size, step_size)
 
     window_energy = []
     while window_generator.has_next():
         if progress and window_generator.position % 1000:
             window_generator.progress()
-        window_energy.append(window_generator.next_window() / avg_energy)
+        window_energy.append(window_generator.next_window_energy() / avg_energy)
 
     step_count = len(audio_data) // step_size
 

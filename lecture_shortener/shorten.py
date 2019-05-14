@@ -3,24 +3,33 @@
 
 from moviepy.editor import *
 
-from lecture_shortener import audio, arguments, util, video, globals
+from lecture_shortener import audio, util, video, globals
 from silence_detection import silence
 
 
-def main():
-    args = arguments.arguments()
-
+def shorten(
+    input_path,
+    output_path,
+    speed_sound=1.6,
+    speed_silence=5.0,
+    min_silence_len=2000,
+    step_duration=None,
+    silence_threshold=0.1,
+    nr_threads=2,
+    verbose=False,
+    progress=False,
+):
     # audio processing
-    sample_rate, audio_data = audio.get_audio_data(args.input_filename, args.threads)
-    step_duration = args.step_duration if args.step_duration else args.min_silence_len / 10
+    sample_rate, audio_data = audio.get_audio_data(input_path, nr_threads)
+    step_duration = step_duration if step_duration else min_silence_len / 10
     ranges = silence.detect_silence_ranges(
         audio_data=audio_data,
         sample_rate=sample_rate,
-        min_silence_len=args.min_silence_len,
+        min_silence_len=min_silence_len,
         step_duration=step_duration,
-        silence_threshold=args.silence_threshold,
-        verbose=True,
-        progress=True,
+        silence_threshold=silence_threshold,
+        verbose=verbose,
+        progress=progress,
     )
 
     util.show_saved_time_info(ranges)
@@ -32,19 +41,15 @@ def main():
             exit(0)
 
     # video processing
-    complete_clip = VideoFileClip(args.input_filename)
+    complete_clip = VideoFileClip(input_path)
     clips = video.generate_clips(
         ranges,
         complete_clip,
-        args.speed_sound,
-        args.speed_silence
+        speed_sound,
+        speed_silence
     )
     print()
     concat_clip = concatenate_videoclips(clips, method='compose')
-    concat_clip.write_videofile(args.output_filename, threads=args.threads)
+    concat_clip.write_videofile(output_path, threads=nr_threads)
 
     util.clear_dir(globals.TEMP_DIR)
-
-
-if __name__ == '__main__':
-    main()

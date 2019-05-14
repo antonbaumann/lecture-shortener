@@ -1,15 +1,15 @@
 import random
 import unittest
 
-from silence_detection import window, silence
+from silence_detection import window
 
 
-class TestCache(unittest.TestCase):
+class TestRingQueue(unittest.TestCase):
     def test_add(self):
         test_lst = [random.randint(-300, 300) for _ in range(200)]
-        cache = window.Cache(3)
+        cache = window.RingQueue(3)
 
-        # init cache
+        # init queue
         for i in range(cache.size - 1):
             cache.add(test_lst[i])
 
@@ -26,9 +26,9 @@ class TestCache(unittest.TestCase):
             sum([2, 4, 9]) / 3,
             sum([4, 9, 0]) / 3,
         ]
-        cache = window.Cache(3)
+        cache = window.RingQueue(3)
 
-        # init cache
+        # init queue
         for i in range(cache.size - 1):
             cache.add(test_lst[i])
 

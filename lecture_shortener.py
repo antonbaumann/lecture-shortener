@@ -4,6 +4,8 @@
 import argparse
 import os
 
+from lecture_shortener import shorten
+
 
 # check if file exists
 def validate_input_file(p, filepath) -> str:
@@ -104,3 +106,18 @@ def arguments():
         help='general video speed',
     )
     return parser.parse_args()
+
+
+args = arguments()
+shorten.shorten(
+    input_path=args.input_filename,
+    output_path=args.output_filename,
+    speed_sound=args.speed_sound,
+    speed_silence=args.speed_silence,
+    min_silence_len=args.min_silence_len,
+    silence_threshold=args.silence_threshold,
+    step_duration=args.step_duration,
+    nr_threads=args.threads,
+    verbose=True,
+    progress=True,
+)
