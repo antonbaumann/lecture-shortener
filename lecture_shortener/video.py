@@ -11,25 +11,29 @@ from scipy.io import wavfile
 from lecture_shortener import globals, audio, util
 
 
-def _apply_speed_to_range(clip, range_to_modify, speed):
+def _apply_speed_to_range(clip, range_to_modify, speed, is_silent):
     subclip = clip.subclip(range_to_modify[0], range_to_modify[1])
 
-    # extract unmodified audio data
-    audio_data = subclip.audio
-    sound_array = audio_data.to_soundarray()
-    audio_array = np.array(sound_array)
+    # We only need to care about preserving the audio's pitch, if the range to modify is not silent
+    if is_silent:
+        fast_subclip = moviepy.video.fx.all.speedx(subclip, factor=speed)
+    else:
+        # extract unmodified audio data
+        audio_data = subclip.audio
+        sound_array = audio_data.to_soundarray()
+        audio_array = np.array(sound_array)
 
-    fast_audio_array = audio.apply_speed_to_audio(audio_array.T, speed)  # without modifying pitch!
+        fast_audio_array = audio.apply_speed_to_audio(audio_array.T, speed)  # without modifying pitch!
 
-    # workaround in order to be able to create an audio file clip from the modified audio
-    # saves .wav chunks in TEMPDIR
-    temp_file_path = os.path.join(globals.TEMP_DIR, f'{int(range_to_modify[0] * 100)}.wav')
-    wavfile.write(temp_file_path, audio_data.fps, fast_audio_array.T)
-    fast_audio = moviepy.audio.io.AudioFileClip.AudioFileClip(temp_file_path)
+        # workaround in order to be able to create an audio file clip from the modified audio
+        # saves .wav chunks in TEMPDIR
+        temp_file_path = os.path.join(globals.TEMP_DIR, f'{int(range_to_modify[0] * 100)}.wav')
+        wavfile.write(temp_file_path, audio_data.fps, fast_audio_array.T)
+        fast_audio = moviepy.audio.io.AudioFileClip.AudioFileClip(temp_file_path)
 
-    # apply speed to subclip
-    fast_subclip = moviepy.video.fx.all.speedx(subclip, factor=None, final_duration=fast_audio.duration)
-    fast_subclip = fast_subclip.set_audio(fast_audio)
+        # apply speed to subclip
+        fast_subclip = moviepy.video.fx.all.speedx(subclip, factor=None, final_duration=fast_audio.duration)
+        fast_subclip = fast_subclip.set_audio(fast_audio)
 
     return fast_subclip
 
@@ -54,7 +58,8 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
             _apply_speed_to_range(
                 complete_clip,
                 (0, video_len),
-                speed_sound
+                speed_sound,
+                is_silent=False
             )
         )
         return clips
@@ -65,7 +70,8 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
             _apply_speed_to_range(
                 complete_clip,
                 (0, start_time(ranges[0])),
-                speed_sound
+                speed_sound,
+                is_silent=False
             )
         )
 
@@ -77,7 +83,8 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
             _apply_speed_to_range(
                 complete_clip,
                 ranges[i],
-                speed_silence
+                speed_silence,
+                is_silent=True
             )
         )
         if i < len(ranges) - 1:
@@ -85,7 +92,8 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
                 _apply_speed_to_range(
                     complete_clip,
                     (end_time(ranges[i]), start_time(ranges[i + 1])),
-                    speed_sound
+                    speed_sound,
+                    is_silent=False
                 )
             )
 
@@ -94,7 +102,8 @@ def generate_clips(ranges, complete_clip, speed_sound, speed_silence):
             _apply_speed_to_range(
                 complete_clip,
                 (end_time(ranges[-1]), video_len),
-                speed_sound
+                speed_sound,
+                is_silent=False
             )
         )
 
