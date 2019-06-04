@@ -2,4 +2,4 @@ moviepy==1.0.0
 scipy==1.2.1
 numpy==1.16.1
 audiotsm==0.1.2
-pysilence==0.1
+pysilence==0.1.3
