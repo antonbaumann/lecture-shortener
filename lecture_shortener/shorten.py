@@ -4,7 +4,7 @@
 from moviepy.editor import *
 
 from lecture_shortener import audio, util, video, globals
-from silence_detection import silence
+from pysilence import silence
 
 
 def shorten(
